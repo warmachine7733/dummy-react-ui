@@ -18,8 +18,11 @@ const App = () => {
   const handleGetRequest = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${apiBaseUrl}/posts/1`);
+      const res = await fetch(`${apiBaseUrl}/posts/1?test=1234,123`);
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || `Request failed with status ${res.status}`);
+      }
       setResponse({
         method: "GET",
         status: "Success",
@@ -51,6 +54,9 @@ const App = () => {
         },
       });
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || `Request failed with status ${res.status}`);
+      }
       setResponse({
         method: "POST",
         status: "Success",
@@ -83,6 +89,9 @@ const App = () => {
         },
       });
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || `Request failed with status ${res.status}`);
+      }
       setResponse({
         method: "PUT",
         status: "Success",
@@ -105,13 +114,14 @@ const App = () => {
       const res = await fetch(`${apiBaseUrl}/posts/1`, {
         method: "DELETE",
       });
-      if (res.ok) {
-        setResponse({
-          method: "DELETE",
-          status: "Success",
-          data: { message: "Post deleted successfully" },
-        });
+      if (!res.ok) {
+        throw new Error(`Request failed with status ${res.status}`);
       }
+      setResponse({
+        method: "DELETE",
+        status: "Success",
+        data: { message: "Post deleted successfully" },
+      });
     } catch (error: any) {
       setResponse({
         method: "DELETE",
