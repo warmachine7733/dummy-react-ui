@@ -114,13 +114,15 @@ const App = () => {
       const res = await fetch(`${apiBaseUrl}/posts/1`, {
         method: "DELETE",
       });
+      const responseText = await res.text();
+      const data = responseText ? JSON.parse(responseText) : null;
       if (!res.ok) {
-        throw new Error(`Request failed with status ${res.status}`);
+        throw new Error(data?.message || data?.error || `Request failed with status ${res.status}`);
       }
       setResponse({
         method: "DELETE",
         status: "Success",
-        data: { message: "Post deleted successfully" },
+        data: data || { message: "Post deleted successfully" },
       });
     } catch (error: any) {
       setResponse({
