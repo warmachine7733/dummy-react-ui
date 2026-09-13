@@ -35,7 +35,20 @@ body {
   text-align: center;
   color: #666;
   font-size: 1.1rem;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
+}
+
+.flow-entry {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 30px;
+  color: #667eea;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.flow-entry:hover {
+  text-decoration: underline;
 }
 
 .button-group {

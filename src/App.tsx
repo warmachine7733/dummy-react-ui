@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import './App.css'
 
 interface ApiResponse {
@@ -138,6 +139,10 @@ const App = () => {
     <div className="container">
       <h1 className="title">JSONPlaceholder API Demo</h1>
       <p className="subtitle">Test different HTTP methods</p>
+
+      <Link className="flow-entry" to="/flow/profile">
+        Open Multi-Step Flow
+      </Link>
 
       <div className="button-group">
         <button
