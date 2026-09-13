@@ -94,9 +94,9 @@ export const flowApi = {
     return user.address;
   },
 
-  getReviewPreference: async () => {
+  getReviewPreference: async (preferenceId = 1) => {
     const todo = await request<TodoResponse>(
-      "/todos/1",
+      `/todos/${preferenceId}`,
       "/api/flow/review/preferences"
     );
     return { id: todo.id, title: todo.title };

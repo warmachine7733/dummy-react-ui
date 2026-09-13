@@ -219,7 +219,12 @@ interface ReviewData {
   preference: Preference;
 }
 
-const ReviewStep = () => {
+interface ReviewStepProps {
+  address: Address;
+  selectedPreference: Preference | null;
+}
+
+const ReviewStep = ({ address, selectedPreference }: ReviewStepProps) => {
   const navigate = useNavigate();
   const [review, setReview] = useState<ReviewData | null>(null);
   const [status, setStatus] = useState<RequestStatus>("loading");
@@ -230,10 +235,14 @@ const ReviewStep = () => {
     Promise.all([
       flowApi.getReviewProfile(),
       flowApi.getReviewAddress(),
-      flowApi.getReviewPreference(),
-    ]).then(([profile, address, preference]) => {
+      flowApi.getReviewPreference(selectedPreference?.id),
+    ]).then(([profile, fetchedAddress, fetchedPreference]) => {
       if (active) {
-        setReview({ profile, address, preference });
+        setReview({
+          profile,
+          address: address.street ? address : fetchedAddress,
+          preference: selectedPreference || fetchedPreference,
+        });
         setStatus("success");
       }
     }).catch((requestError: unknown) => {
@@ -243,7 +252,7 @@ const ReviewStep = () => {
       }
     });
     return () => { active = false; };
-  }, []);
+  }, [address, selectedPreference]);
 
   return (
     <FlowPage step={4} title="Review">
@@ -321,7 +330,7 @@ const MultiStepFlow = () => {
       <Route path="profile" element={<ProfileStep />} />
       <Route path="address" element={<AddressStep address={address} setAddress={setAddress} />} />
       <Route path="preferences" element={<PreferencesStep selectedPreference={selectedPreference} setSelectedPreference={setSelectedPreference} />} />
-      <Route path="review" element={<ReviewStep />} />
+      <Route path="review" element={<ReviewStep address={address} selectedPreference={selectedPreference} />} />
       <Route path="complete" element={<CompleteStep />} />
       <Route path="*" element={<Navigate to="profile" replace />} />
     </Routes>
