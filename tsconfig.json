@@ -16,7 +16,7 @@
     "target": "ES5",
     "resolveJsonModule": true,
     "isolatedModules": false,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "outDir": "dist"
   },
   "exclude": ["node_modules"],
