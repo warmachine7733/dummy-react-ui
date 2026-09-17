@@ -1,4 +1,4 @@
-import React, { FormEvent, ReactNode, useEffect, useState } from "react";
+import React, { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { Address, flowApi, Preference, Profile } from "./flowApi";
 import "./MultiStepFlow.css";
@@ -36,10 +36,10 @@ const FlowPage = ({ step, title, children }: FlowPageProps) => (
   <main className="container flow-container">
     <div className="flow-heading">
       <Link className="flow-home-link" to="/">Back to API Demo</Link>
-      <span className="step-indicator">Step {step} of 5</span>
+      <span className="step-indicator">Step {step} of 6</span>
     </div>
     <div className="step-track" aria-hidden="true">
-      <div className="step-progress" style={{ width: `${step * 20}%` }} />
+      <div className="step-progress" style={{ width: `${(step / 6) * 100}%` }} />
     </div>
     <h1 className="flow-title">{title}</h1>
     {children}
@@ -266,10 +266,41 @@ const ReviewStep = ({ address, selectedPreference }: ReviewStepProps) => {
       )}
       <div className="flow-actions">
         <button className="btn flow-back" onClick={() => navigate("/flow/preferences")}>Back</button>
-        <button className="btn btn-get" disabled={!review} onClick={() => navigate("/flow/complete")}>Submit</button>
+        <button className="btn btn-get" disabled={!review} onClick={() => navigate("/flow/iframe-post")}>Submit</button>
       </div>
     </FlowPage>
   );
+};
+
+const iframePostDocument = `<!doctype html><script>
+addEventListener('message', async ({data:{submit}={}}) => { if (!submit) return;
+ try { const response=await fetch('https://jsonplaceholder.typicode.com/posts',{method:'POST',headers:{'Content-Type':'application/json; charset=UTF-8'},body:JSON.stringify({title:'Flow submission',body:'Submitted from the flow iframe step',userId:1})}), data=await response.json(); if(!response.ok) throw Error(data.message||'Request failed with status '+response.status); parent.postMessage({type:'flow-iframe-post',data},'*'); }
+ catch(error) { parent.postMessage({type:'flow-iframe-post-error',error:error.message},'*'); }
+});</script>`;
+
+const IframePostStep = () => {
+  const navigate = useNavigate();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [status, setStatus] = useState<RequestStatus>("success");
+  const [error, setError] = useState("");
+  const [submissionId, setSubmissionId] = useState<number | null>(null);
+  useEffect(() => {
+    const receive = (event: MessageEvent<{ type?: string; data?: { id?: number }; error?: string }>) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+      if (event.data.type === "flow-iframe-post") { setSubmissionId(event.data.data?.id || null); setStatus("success"); }
+      if (event.data.type === "flow-iframe-post-error") { setError(event.data.error || "Iframe POST failed."); setStatus("error"); }
+    };
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, []);
+  const submit = () => { setStatus("loading"); setError(""); iframeRef.current?.contentWindow?.postMessage({ submit: true }, "*"); };
+  return <FlowPage step={5} title="Iframe submission">
+    <p className="flow-iframe-copy">Submit the final POST request from the isolated iframe.</p>
+    {status !== "success" && <StatusMessage status={status} successMessage="Iframe POST completed." error={error} />}
+    {submissionId !== null && <div className="flow-success flow-status">Iframe POST completed. Submission ID: {submissionId}</div>}
+    <iframe ref={iframeRef} srcDoc={iframePostDocument} sandbox="allow-scripts" title="Flow iframe POST request" className="api-frame" />
+    <div className="flow-actions"><button className="btn flow-back" onClick={() => navigate("/flow/review")}>Back</button><button className="btn btn-post" disabled={status === "loading" || submissionId !== null} onClick={submit}>Run iframe POST</button>{submissionId !== null && <button className="btn btn-get" onClick={() => navigate("/flow/complete")}>Continue</button>}</div>
+  </FlowPage>;
 };
 
 const CompleteStep = () => {
@@ -302,7 +333,7 @@ const CompleteStep = () => {
   }, []);
 
   return (
-    <FlowPage step={5} title="Complete">
+    <FlowPage step={6} title="Complete">
       <StatusMessage status={status} successMessage="Flow submitted successfully." error={error} />
       {completionId !== null && (
         <div className="completion-message">
@@ -312,7 +343,7 @@ const CompleteStep = () => {
         </div>
       )}
       <div className="flow-actions">
-        <button className="btn flow-back" onClick={() => navigate("/flow/review")}>Back</button>
+        <button className="btn flow-back" onClick={() => navigate("/flow/iframe-post")}>Back</button>
         <button className="btn btn-get" onClick={() => navigate("/")}>Return to API Demo</button>
       </div>
     </FlowPage>
@@ -331,6 +362,7 @@ const MultiStepFlow = () => {
       <Route path="address" element={<AddressStep address={address} setAddress={setAddress} />} />
       <Route path="preferences" element={<PreferencesStep selectedPreference={selectedPreference} setSelectedPreference={setSelectedPreference} />} />
       <Route path="review" element={<ReviewStep address={address} selectedPreference={selectedPreference} />} />
+      <Route path="iframe-post" element={<IframePostStep />} />
       <Route path="complete" element={<CompleteStep />} />
       <Route path="*" element={<Navigate to="profile" replace />} />
     </Routes>

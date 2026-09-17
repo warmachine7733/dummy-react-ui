@@ -181,6 +181,11 @@
   min-width: 130px;
 }
 
+.flow-iframe-copy {
+  margin-bottom: 18px;
+  color: #666;
+}
+
 .flow-back {
   color: #444;
   background: #e9ecef;

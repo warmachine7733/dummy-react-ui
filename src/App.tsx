@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import './App.css'
 
@@ -9,9 +9,34 @@ interface ApiResponse {
   error?: string;
 }
 
+const iframeDocument = `<!doctype html><script>
+addEventListener('message', async ({data:{method}={}}) => { if (!method) return;
+ const options=method==='POST'?{method:'POST',headers:{'Content-Type':'application/json; charset=UTF-8'},body:JSON.stringify({title:'Iframe post',body:'This request was made inside an iframe',userId:1})}:{};
+ try { const response=await fetch('https://jsonplaceholder.typicode.com/posts'+(method==='GET'?'/1?test=1234,123':''),options), data=await response.json(); if(!response.ok) throw Error(data.message||'Request failed with status '+response.status); parent.postMessage({type:'iframe-result',method,status:'Success',data},'*'); }
+ catch(error) { parent.postMessage({type:'iframe-result',method,status:'Error',error:error.message},'*'); }
+});</script>`;
+
 const App = () => {
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const receive = (event: MessageEvent<ApiResponse & { type?: string }>) => {
+      if (event.source === iframeRef.current?.contentWindow && event.data?.type === "iframe-result") {
+        setResponse(event.data);
+        setLoading(false);
+      }
+    };
+    window.addEventListener("message", receive);
+    return () => window.removeEventListener("message", receive);
+  }, []);
+
+  const handleIframeRequest = (method: "GET" | "POST") => {
+    setLoading(true);
+    setResponse(null);
+    iframeRef.current?.contentWindow?.postMessage({ method }, "*");
+  };
 
   const apiBaseUrl = "https://jsonplaceholder.typicode.com";
 
@@ -145,6 +170,12 @@ const App = () => {
       </Link>
 
       <div className="button-group">
+        <button className="btn btn-iframe" onClick={() => handleIframeRequest("GET")} disabled={loading}>
+          Iframe GET Request
+        </button>
+        <button className="btn btn-iframe" onClick={() => handleIframeRequest("POST")} disabled={loading}>
+          Iframe POST Request
+        </button>
         <button
           className="btn btn-get"
           onClick={handleGetRequest}
@@ -174,6 +205,8 @@ const App = () => {
           🗑️ DELETE Request
         </button>
       </div>
+
+      <iframe ref={iframeRef} srcDoc={iframeDocument} sandbox="allow-scripts" title="Iframe API requests" className="api-frame" />
 
       {loading && <div className="loading">Loading...</div>}
 
